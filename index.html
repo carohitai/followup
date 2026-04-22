@@ -162,6 +162,95 @@
   .panel { display: none; }
   .panel.active { display: block; }
 
+  /* Sub-tabs inside a panel (used by Masters) */
+  .subtabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .subtab {
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    background: transparent;
+    border: none;
+    padding: 10px 14px;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.15s;
+  }
+  .subtab:hover { color: var(--text); }
+  .subtab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+  .subtab-count {
+    background: var(--surface-alt);
+    color: var(--text-muted);
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+  .subtab.active .subtab-count {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .subpanel { display: none; }
+  .subpanel.active { display: block; }
+
+  /* Master editor (simple list CRUD) */
+  .master-hint {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: 0 0 14px;
+  }
+  .master-editor .master-add {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .master-editor .master-add input {
+    flex: 1;
+  }
+  .master-editor .master-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .master-editor .master-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+  }
+  .master-editor .master-row .master-label {
+    flex: 1;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .master-editor .master-row .master-source {
+    font-size: 11px;
+    color: var(--text-subtle);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .master-editor .master-empty {
+    color: var(--text-subtle);
+    font-size: 13px;
+    padding: 12px 0;
+  }
+
   .panel-head {
     display: flex;
     justify-content: space-between;
@@ -478,6 +567,7 @@
   .badge-desc-other { background: var(--surface-alt); color: var(--text-muted); }
   .badge-expense { background: var(--surface-alt); color: var(--text-muted); font-weight: 500; }
   .badge-unit { background: var(--surface-alt); color: var(--text); font-weight: 500; border: 1px solid var(--border); }
+  .badge-allottee { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
 
   /* Linked tasks section */
   .task-linked {
@@ -850,8 +940,8 @@
     <button class="tab active" data-tab="tasks" role="tab">
       Tasks <span class="tab-count" id="tasksCount">0</span>
     </button>
-    <button class="tab" data-tab="vendors" role="tab">
-      Vendor Directory <span class="tab-count" id="vendorsCount">0</span>
+    <button class="tab" data-tab="masters" role="tab">
+      Masters
     </button>
   </nav>
 
@@ -872,10 +962,20 @@
         <div class="form-label">Task description</div>
         <input type="text" id="taskTitle" placeholder='e.g., "Follow up Indoshine on black stone delivery"' />
 
-        <div class="form-label">Unit</div>
-        <select id="taskUnit">
-          <option value="">— Select unit —</option>
-        </select>
+        <div class="form-row">
+          <div>
+            <div class="form-label">Unit</div>
+            <select id="taskUnit">
+              <option value="">— Select unit —</option>
+            </select>
+          </div>
+          <div>
+            <div class="form-label">Allotted to</div>
+            <select id="taskAllottedTo">
+              <option value="">— Unassigned —</option>
+            </select>
+          </div>
+        </div>
 
         <div class="form-row">
           <div>
@@ -913,78 +1013,97 @@
       </div>
     </section>
 
-    <!-- VENDORS PANEL -->
-    <section class="panel" id="vendorsPanel" role="tabpanel">
-      <div class="panel-head">
-        <input type="search" class="search-input" placeholder="Search name, POC, phone, scope, expense head…" id="vendorSearch" />
-        <button class="btn btn-primary" id="addVendorBtn">+ Add vendor</button>
+    <!-- MASTERS PANEL -->
+    <section class="panel" id="mastersPanel" role="tabpanel">
+      <nav class="subtabs" role="tablist">
+        <button class="subtab active" data-subtab="vendors" role="tab">Vendors <span class="subtab-count" id="vendorsCount">0</span></button>
+        <button class="subtab" data-subtab="units" role="tab">Units <span class="subtab-count" id="unitsCount">0</span></button>
+        <button class="subtab" data-subtab="expenseHeads" role="tab">Expense Heads <span class="subtab-count" id="expenseHeadsCount">0</span></button>
+        <button class="subtab" data-subtab="descriptionTypes" role="tab">Description Types <span class="subtab-count" id="descriptionTypesCount">0</span></button>
+        <button class="subtab" data-subtab="allottees" role="tab">Allottees <span class="subtab-count" id="allotteesCount">0</span></button>
+      </nav>
+
+      <div class="subpanel active" id="vendorsSubpanel" role="tabpanel">
+        <div class="panel-head">
+          <input type="search" class="search-input" placeholder="Search name, POC, phone, scope, expense head…" id="vendorSearch" />
+          <button class="btn btn-primary" id="addVendorBtn">+ Add vendor</button>
+        </div>
+
+        <div class="vendor-toolbar">
+          <select class="filter-select" id="expenseHeadFilter">
+            <option value="">All expense heads</option>
+          </select>
+          <select class="filter-select" id="descriptionFilter">
+            <option value="">All descriptions</option>
+          </select>
+          <select class="filter-select" id="viewMode">
+            <option value="grouped">Grouped by expense head</option>
+            <option value="alpha">Alphabetical</option>
+          </select>
+        </div>
+
+        <div class="form hidden" id="vendorForm">
+          <div class="form-label">Trade name</div>
+          <input type="text" id="vendorName" placeholder="Firm / trade name" />
+          <div class="form-row">
+            <div>
+              <div class="form-label">Point of contact</div>
+              <input type="text" id="vendorPOC" placeholder="Person's name" />
+            </div>
+            <div>
+              <div class="form-label">Contact number</div>
+              <input type="tel" id="vendorPhone" placeholder="10-digit mobile" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div>
+              <div class="form-label">Email ID</div>
+              <input type="email" id="vendorEmail" placeholder="Optional" />
+            </div>
+            <div>
+              <div class="form-label">Description</div>
+              <select id="vendorDescription">
+                <option value="">— Select —</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div>
+              <div class="form-label">Scope</div>
+              <input type="text" id="vendorScope" placeholder="e.g., Tiles Supplier, Plumbing Grohe" />
+            </div>
+            <div>
+              <div class="form-label">Expense head</div>
+              <input type="text" id="vendorExpense" placeholder="e.g., Flooring, Civil" list="expenseHeadList" />
+              <datalist id="expenseHeadList"></datalist>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-ghost" id="cancelVendorBtn">Cancel</button>
+            <button class="btn btn-primary" id="saveVendorBtn">Add vendor</button>
+          </div>
+        </div>
+
+        <div id="vendorsList"></div>
+        <div class="empty hidden" id="vendorsEmpty">No vendors added yet.</div>
       </div>
 
-      <div class="vendor-toolbar">
-        <select class="filter-select" id="expenseHeadFilter">
-          <option value="">All expense heads</option>
-        </select>
-        <select class="filter-select" id="descriptionFilter">
-          <option value="">All descriptions</option>
-          <option value="Vendor">Vendor</option>
-          <option value="Contractor">Contractor</option>
-          <option value="Professional">Professional</option>
-          <option value="Other">Other / Unspecified</option>
-        </select>
-        <select class="filter-select" id="viewMode">
-          <option value="grouped">Grouped by expense head</option>
-          <option value="alpha">Alphabetical</option>
-        </select>
+      <div class="subpanel" id="unitsSubpanel" role="tabpanel">
+        <div class="master-editor" data-master="units"></div>
       </div>
 
-      <div class="form hidden" id="vendorForm">
-        <div class="form-label">Trade name</div>
-        <input type="text" id="vendorName" placeholder="Firm / trade name" />
-        <div class="form-row">
-          <div>
-            <div class="form-label">Point of contact</div>
-            <input type="text" id="vendorPOC" placeholder="Person's name" />
-          </div>
-          <div>
-            <div class="form-label">Contact number</div>
-            <input type="tel" id="vendorPhone" placeholder="10-digit mobile" />
-          </div>
-        </div>
-        <div class="form-row">
-          <div>
-            <div class="form-label">Email ID</div>
-            <input type="email" id="vendorEmail" placeholder="Optional" />
-          </div>
-          <div>
-            <div class="form-label">Description</div>
-            <select id="vendorDescription">
-              <option value="">— Select —</option>
-              <option value="Vendor">Vendor</option>
-              <option value="Contractor">Contractor</option>
-              <option value="Professional">Professional</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-row">
-          <div>
-            <div class="form-label">Scope</div>
-            <input type="text" id="vendorScope" placeholder="e.g., Tiles Supplier, Plumbing Grohe" />
-          </div>
-          <div>
-            <div class="form-label">Expense head</div>
-            <input type="text" id="vendorExpense" placeholder="e.g., Flooring, Civil" list="expenseHeadList" />
-            <datalist id="expenseHeadList"></datalist>
-          </div>
-        </div>
-        <div class="form-actions">
-          <button class="btn btn-ghost" id="cancelVendorBtn">Cancel</button>
-          <button class="btn btn-primary" id="saveVendorBtn">Add vendor</button>
-        </div>
+      <div class="subpanel" id="expenseHeadsSubpanel" role="tabpanel">
+        <div class="master-editor" data-master="expenseHeads"></div>
       </div>
 
-      <div id="vendorsList"></div>
-      <div class="empty hidden" id="vendorsEmpty">No vendors added yet.</div>
+      <div class="subpanel" id="descriptionTypesSubpanel" role="tabpanel">
+        <div class="master-editor" data-master="descriptionTypes"></div>
+      </div>
+
+      <div class="subpanel" id="allotteesSubpanel" role="tabpanel">
+        <p class="master-hint" id="allotteesHint">Active Microsoft directory users are included automatically. Use this list to add anyone not in Entra (e.g. external contractors).</p>
+        <div class="master-editor" data-master="allottees"></div>
+      </div>
     </section>
   </main>
 
@@ -1041,6 +1160,17 @@ window.__startApp = function(){
     'The Word School ICSE',
     'New house construction'
   ];
+  const K_UNITS = 'masters-units';
+  const K_EXPENSE_HEADS = 'masters-expense-heads';
+  const K_DESC_TYPES = 'masters-description-types';
+  const K_ALLOTTEES = 'masters-allottees';
+  const DEFAULT_DESC_TYPES = ['Vendor', 'Contractor', 'Professional', 'Other'];
+  const MASTER_CONFIG = {
+    units: { key: K_UNITS, field: 'units', label: 'unit' },
+    expenseHeads: { key: K_EXPENSE_HEADS, field: 'expenseHeads', label: 'expense head' },
+    descriptionTypes: { key: K_DESC_TYPES, field: 'descriptionTypes', label: 'description type' },
+    allottees: { key: K_ALLOTTEES, field: 'allottees', label: 'allottee' }
+  };
   const K_SEEDED_V2 = 'vendor-seed-v2-applied';
 
   // ---------- Seed vendors (79-row list) ----------
@@ -1130,6 +1260,11 @@ window.__startApp = function(){
   let state = {
     tasks: [],
     vendors: [],
+    units: [],
+    expenseHeads: [],
+    descriptionTypes: [],
+    allottees: [],
+    graphUsers: [],
     currentUser: 'Director',
     filter: 'all',
     vendorSearch: '',
@@ -1137,6 +1272,7 @@ window.__startApp = function(){
     descriptionFilter: '',
     viewMode: 'grouped',
     activeTab: 'tasks',
+    activeSubTab: 'vendors',
     taskFormLinkedIds: [] // temp state for new task form
   };
 
@@ -1261,6 +1397,7 @@ window.__startApp = function(){
       taskId: t.taskId || '', // assigned post-migration
       title: t.title || '',
       unitName: t.unitName || '',
+      allottedTo: t.allottedTo || '',
       vendorId: t.vendorId || null,
       linkedTaskIds: Array.isArray(t.linkedTaskIds) ? t.linkedTaskIds : [],
       priority: t.priority || 'normal',
@@ -1320,10 +1457,14 @@ window.__startApp = function(){
   // ---------- Data ops ----------
   async function loadAll() {
     setSync('Loading…', 'syncing');
-    const [t, v, seededV2] = await Promise.all([
+    const [t, v, seededV2, mu, me, md, ma] = await Promise.all([
       safeGet(K_TASKS, true),
       safeGet(K_VENDORS, true),
-      safeGet(K_SEEDED_V2, true)
+      safeGet(K_SEEDED_V2, true),
+      safeGet(K_UNITS, true),
+      safeGet(K_EXPENSE_HEADS, true),
+      safeGet(K_DESC_TYPES, true),
+      safeGet(K_ALLOTTEES, true)
     ]);
     try {
       const rawTasks = t ? JSON.parse(t.value) : [];
@@ -1341,6 +1482,21 @@ window.__startApp = function(){
       await safeSet(K_SEEDED_V2, 'true', true);
     }
 
+    // Masters — parse existing or seed defaults
+    state.units = parseMaster(mu);
+    state.expenseHeads = parseMaster(me);
+    state.descriptionTypes = parseMaster(md);
+    state.allottees = parseMaster(ma);
+    if (state.units === null) { state.units = DEFAULT_UNITS.slice(); await saveMaster('units'); }
+    if (state.descriptionTypes === null) { state.descriptionTypes = DEFAULT_DESC_TYPES.slice(); await saveMaster('descriptionTypes'); }
+    if (state.allottees === null) { state.allottees = []; await saveMaster('allottees'); }
+    if (state.expenseHeads === null) {
+      const set = new Set();
+      state.vendors.forEach(v => { if (v.expenseHead) set.add(v.expenseHead); });
+      state.expenseHeads = Array.from(set).sort((a,b) => a.localeCompare(b));
+      await saveMaster('expenseHeads');
+    }
+
     // Assign task IDs to any tasks lacking them
     const changed = assignMissingTaskIds();
     if (changed) await saveTasks();
@@ -1352,20 +1508,83 @@ window.__startApp = function(){
   async function saveTasks() { await safeSet(K_TASKS, JSON.stringify(state.tasks), true); }
   async function saveVendors() { await safeSet(K_VENDORS, JSON.stringify(state.vendors), true); }
 
+  function parseMaster(entry) {
+    if (!entry || !entry.value) return null;
+    try {
+      const v = JSON.parse(entry.value);
+      return Array.isArray(v) ? v : null;
+    } catch(e) { return null; }
+  }
+  async function saveMaster(type) {
+    const cfg = MASTER_CONFIG[type];
+    if (!cfg) return;
+    await safeSet(cfg.key, JSON.stringify(state[cfg.field]), true);
+  }
+
   // ---------- Render ----------
   function getExpenseHeads() {
-    const set = new Set();
+    const set = new Set(state.expenseHeads || []);
     state.vendors.forEach(v => { if (v.expenseHead) set.add(v.expenseHead); });
-    return Array.from(set).sort();
+    return Array.from(set).sort((a,b) => a.localeCompare(b));
   }
 
   function populateExpenseHeadFilter() {
     const sel = $('#expenseHeadFilter');
+    if (!sel) return;
     const current = state.expenseHeadFilter;
     const heads = getExpenseHeads();
     sel.innerHTML = '<option value="">All expense heads</option>' +
       heads.map(h => `<option value="${escapeHtml(h)}"${h===current?' selected':''}>${escapeHtml(h)}</option>`).join('');
-    $('#expenseHeadList').innerHTML = heads.map(h => `<option value="${escapeHtml(h)}"></option>`).join('');
+    const list = $('#expenseHeadList');
+    if (list) list.innerHTML = heads.map(h => `<option value="${escapeHtml(h)}"></option>`).join('');
+  }
+
+  function populateDescriptionFilter() {
+    const sel = $('#descriptionFilter');
+    if (!sel) return;
+    const current = state.descriptionFilter;
+    sel.innerHTML = '<option value="">All descriptions</option>' +
+      (state.descriptionTypes || []).map(t => `<option value="${escapeHtml(t)}"${t===current?' selected':''}>${escapeHtml(t)}</option>`).join('');
+  }
+
+  function populateVendorDescriptionSelect() {
+    const sel = $('#vendorDescription');
+    if (!sel) return;
+    const current = sel.value;
+    sel.innerHTML = '<option value="">— Select —</option>' +
+      (state.descriptionTypes || []).map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
+    sel.value = current;
+  }
+
+  function allotteeOptions() {
+    const seen = new Set();
+    const out = [];
+    (state.graphUsers || []).forEach(u => {
+      const name = (u.displayName || ((u.firstName||'') + ' ' + (u.lastName||'')).trim() || u.email || '').trim();
+      if (!name) return;
+      const k = name.toLowerCase();
+      if (seen.has(k)) return;
+      seen.add(k);
+      out.push(name);
+    });
+    (state.allottees || []).forEach(name => {
+      const k = (name || '').toLowerCase();
+      if (!k || seen.has(k)) return;
+      seen.add(k);
+      out.push(name);
+    });
+    out.sort((a,b) => a.localeCompare(b));
+    return out;
+  }
+
+  function populateAllotteesDropdown() {
+    const sel = $('#taskAllottedTo');
+    if (!sel) return;
+    const current = sel.value;
+    const opts = allotteeOptions();
+    sel.innerHTML = '<option value="">— Unassigned —</option>' +
+      opts.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+    sel.value = current;
   }
 
   function populateTaskIdDatalist(excludeId) {
@@ -1399,12 +1618,57 @@ window.__startApp = function(){
   }
 
   function renderAll() {
+    populateUnitDropdown();
     populateVendorDropdown();
     populateExpenseHeadFilter();
+    populateDescriptionFilter();
+    populateVendorDescriptionSelect();
+    populateAllotteesDropdown();
     renderTasks();
     renderVendors();
+    renderMasters();
     updateTaskCounts();
     $('#vendorsCount').textContent = state.vendors.length;
+  }
+
+  function renderMasterEditor(type) {
+    const cfg = MASTER_CONFIG[type];
+    if (!cfg) return;
+    const container = document.querySelector(`.master-editor[data-master="${type}"]`);
+    if (!container) return;
+    const existingInput = container.querySelector('[data-master-input]');
+    const pending = existingInput ? existingInput.value : '';
+    const wasFocused = document.activeElement === existingInput;
+    const items = state[cfg.field] || [];
+    const sorted = items.slice().sort((a,b) => a.localeCompare(b));
+    container.innerHTML = `
+      <div class="master-add">
+        <input type="text" data-master-input placeholder="Add ${escapeHtml(cfg.label)}…" />
+        <button class="btn btn-primary" data-master-add>Add</button>
+      </div>
+      <div class="master-list">
+        ${sorted.length
+          ? sorted.map(v => `
+              <div class="master-row" data-value="${escapeAttr(v)}">
+                <span class="master-label">${escapeHtml(v)}</span>
+                <button class="icon-btn danger" data-master-delete title="Delete">Delete</button>
+              </div>`).join('')
+          : '<div class="master-empty">No entries yet. Add one above.</div>'}
+      </div>
+    `;
+    const newInput = container.querySelector('[data-master-input]');
+    if (newInput) {
+      if (pending) newInput.value = pending;
+      if (wasFocused) newInput.focus();
+    }
+  }
+
+  function renderMasters() {
+    Object.keys(MASTER_CONFIG).forEach(type => {
+      renderMasterEditor(type);
+      const countEl = $('#' + type + 'Count');
+      if (countEl) countEl.textContent = (state[MASTER_CONFIG[type].field] || []).length;
+    });
   }
 
   function renderTasks() {
@@ -1450,6 +1714,9 @@ window.__startApp = function(){
       : '';
     const unitBadge = t.unitName
       ? `<span class="badge badge-unit">${escapeHtml(t.unitName)}</span>`
+      : '';
+    const allotteeBadge = t.allottedTo
+      ? `<span class="badge badge-allottee">Allotted: ${escapeHtml(t.allottedTo)}</span>`
       : '';
 
     const linkedChips = (t.linkedTaskIds || []).map(lid => {
@@ -1502,6 +1769,7 @@ window.__startApp = function(){
           ${priorityBadge}
           ${unitBadge}
           ${vendorBadge}
+          ${allotteeBadge}
         </div>
         ${linkedSection}
         <div class="follow-up">
@@ -1677,6 +1945,62 @@ window.__startApp = function(){
     });
   });
 
+  // Masters sub-tabs + master editor CRUD (event delegation)
+  $('#mastersPanel').addEventListener('click', async (e) => {
+    const subtab = e.target.closest('.subtab');
+    if (subtab) {
+      $$('#mastersPanel .subtab').forEach(t => t.classList.remove('active'));
+      subtab.classList.add('active');
+      const name = subtab.dataset.subtab;
+      $$('#mastersPanel .subpanel').forEach(p => p.classList.remove('active'));
+      const pnl = $('#' + name + 'Subpanel');
+      if (pnl) pnl.classList.add('active');
+      state.activeSubTab = name;
+      return;
+    }
+    const editor = e.target.closest('.master-editor');
+    if (!editor) return;
+    const type = editor.dataset.master;
+    if (!type || !MASTER_CONFIG[type]) return;
+    const field = MASTER_CONFIG[type].field;
+    if (e.target.matches('[data-master-add]')) {
+      const input = editor.querySelector('[data-master-input]');
+      const val = (input.value || '').trim();
+      if (!val) { input.focus(); return; }
+      const list = state[field] = (state[field] || []).slice();
+      if (list.some(x => x.toLowerCase() === val.toLowerCase())) {
+        input.value = '';
+        input.focus();
+        return;
+      }
+      list.push(val);
+      state[field] = list;
+      await saveMaster(type);
+      input.value = '';
+      renderAll();
+      editor.querySelector('[data-master-input]')?.focus();
+      return;
+    }
+    if (e.target.matches('[data-master-delete]')) {
+      const row = e.target.closest('.master-row');
+      const val = row && row.dataset.value;
+      if (val == null) return;
+      if (!confirm('Delete "' + val + '"?')) return;
+      state[field] = (state[field] || []).filter(x => x !== val);
+      await saveMaster(type);
+      renderAll();
+      return;
+    }
+  });
+
+  $('#mastersPanel').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.target.matches('[data-master-input]')) {
+      e.preventDefault();
+      const editor = e.target.closest('.master-editor');
+      editor.querySelector('[data-master-add]').click();
+    }
+  });
+
   // Task filter chips
   $('#taskFilters').addEventListener('click', (e) => {
     const chip = e.target.closest('.chip');
@@ -1692,6 +2016,7 @@ window.__startApp = function(){
     $('#taskForm').classList.remove('hidden');
     $('#taskTitle').value = '';
     $('#taskUnit').value = '';
+    $('#taskAllottedTo').value = '';
     $('#taskVendor').value = '';
     $('#taskPriority').value = 'normal';
     $('#taskLinkedInput').value = '';
@@ -1744,6 +2069,7 @@ window.__startApp = function(){
       taskId: '', // filled below
       title,
       unitName: $('#taskUnit').value || '',
+      allottedTo: $('#taskAllottedTo').value || '',
       vendorId: $('#taskVendor').value || null,
       linkedTaskIds: state.taskFormLinkedIds.slice(),
       priority: $('#taskPriority').value,
@@ -2003,6 +2329,15 @@ window.__startApp = function(){
         updatedAt: Date.now()
       });
     }
+    // Auto-sync: if the expense head or description is new, add it to the master list
+    if (payload.expenseHead && !state.expenseHeads.some(x => x.toLowerCase() === payload.expenseHead.toLowerCase())) {
+      state.expenseHeads.push(payload.expenseHead);
+      await saveMaster('expenseHeads');
+    }
+    if (payload.description && !state.descriptionTypes.some(x => x.toLowerCase() === payload.description.toLowerCase())) {
+      state.descriptionTypes.push(payload.description);
+      await saveMaster('descriptionTypes');
+    }
     closeVendorForm();
     renderAll();
     await saveVendors();
@@ -2086,8 +2421,7 @@ window.__startApp = function(){
 
   // ---------- Init ----------
   applySignedInUser();
-  populateUnitDropdown();
-  loadAll();
+  loadAll().then(fetchGraphUsers);
 
   function applySignedInUser() {
     const u = window.__user || {};
@@ -2101,8 +2435,26 @@ window.__startApp = function(){
   function populateUnitDropdown() {
     const sel = $('#taskUnit');
     if (!sel) return;
+    const current = sel.value;
+    const units = (state.units && state.units.length) ? state.units : DEFAULT_UNITS;
     sel.innerHTML = '<option value="">— Select unit —</option>' +
-      DEFAULT_UNITS.map(u => `<option value="${escapeHtml(u)}">${escapeHtml(u)}</option>`).join('');
+      units.map(u => `<option value="${escapeHtml(u)}">${escapeHtml(u)}</option>`).join('');
+    sel.value = current;
+  }
+
+  async function fetchGraphUsers() {
+    try {
+      const r = await fetch('/api/users', { credentials: 'same-origin' });
+      if (!r.ok) {
+        console.warn('Failed to load directory users:', r.status);
+        return;
+      }
+      const data = await r.json();
+      state.graphUsers = Array.isArray(data.users) ? data.users : [];
+      populateAllotteesDropdown();
+    } catch(e) {
+      console.warn('Failed to load directory users:', e);
+    }
   }
 
   // Poll for updates from the other party
