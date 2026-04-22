@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>House — Vendor Follow-up Tracker</title>
+<title>Followup Studio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@500;600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -101,6 +101,19 @@
     cursor: pointer;
     appearance: none;
     -webkit-appearance: none;
+  }
+  .user-toggle .user-label {
+    color: var(--text-muted);
+  }
+  .user-toggle .user-name {
+    font-weight: 600;
+    color: var(--text);
+    padding: 8px 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    min-width: 140px;
+    text-align: center;
   }
 
   /* Tabs */
@@ -464,6 +477,7 @@
   .badge-desc-professional { background: var(--prof-soft); color: var(--prof); }
   .badge-desc-other { background: var(--surface-alt); color: var(--text-muted); }
   .badge-expense { background: var(--surface-alt); color: var(--text-muted); font-weight: 500; }
+  .badge-unit { background: var(--surface-alt); color: var(--text); font-weight: 500; border: 1px solid var(--border); }
 
   /* Linked tasks section */
   .task-linked {
@@ -796,7 +810,7 @@
   function showLogin(msg) {
     document.body.innerHTML = `
       <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:'Manrope',sans-serif;gap:20px;background:#f7f3ec;color:#2a1f14;padding:24px;text-align:center;">
-        <h1 style="margin:0;font-family:'Fraunces',serif;font-weight:500;">House — Vendor Follow-up</h1>
+        <h1 style="margin:0;font-family:'Fraunces',serif;font-weight:500;">Followup Studio</h1>
         <p style="margin:0;color:#786852;max-width:420px;">${msg || 'Sign in with your @kolteassociates.in Microsoft account to continue.'}</p>
         <a href="/api/auth/login" style="background:#a8441b;color:white;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;">Sign in with Microsoft</a>
       </div>`;
@@ -807,7 +821,6 @@
     if (r.ok) {
       const user = await r.json();
       window.__user = user;
-      try { localStorage.setItem('current-user-pref', user.email); } catch(e) {}
       document.body.style.visibility = 'visible';
       const start = () => { if (typeof window.__startApp === 'function') window.__startApp(); };
       if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
@@ -823,15 +836,12 @@
 <div class="app">
   <header class="header">
     <div>
-      <h1 class="title">House — Vendor Follow-up</h1>
-      <p class="subtitle">Shared tracker · Director &amp; Mr. Pushpender Vyas</p>
+      <h1 class="title">Followup Studio</h1>
+      <p class="subtitle">Shared tracker</p>
     </div>
     <div class="user-toggle">
-      <label for="userSelect">Logged in as</label>
-      <select id="userSelect">
-        <option value="Director">Director</option>
-        <option value="Mr. Vyas">Mr. Vyas</option>
-      </select>
+      <span class="user-label">Logged in as</span>
+      <span id="currentUserName" class="user-name">&nbsp;</span>
       <a href="/api/auth/logout" id="logoutLink" style="margin-left:12px;font-size:12px;color:var(--text-muted);text-decoration:underline;">Sign out</a>
     </div>
   </header>
@@ -861,6 +871,11 @@
       <div class="form hidden" id="taskForm">
         <div class="form-label">Task description</div>
         <input type="text" id="taskTitle" placeholder='e.g., "Follow up Indoshine on black stone delivery"' />
+
+        <div class="form-label">Unit</div>
+        <select id="taskUnit">
+          <option value="">— Select unit —</option>
+        </select>
 
         <div class="form-row">
           <div>
@@ -1019,7 +1034,13 @@ window.__startApp = function(){
   // ---------- Storage keys ----------
   const K_TASKS = 'tasks-data';
   const K_VENDORS = 'vendors-data';
-  const K_USER = 'current-user-pref';
+  const DEFAULT_UNITS = [
+    'Kolte & Associates LLP',
+    'Kolte Enterprises Private Limited',
+    'Kolte Bizsol Private Limited',
+    'The Word School ICSE',
+    'New house construction'
+  ];
   const K_SEEDED_V2 = 'vendor-seed-v2-applied';
 
   // ---------- Seed vendors (79-row list) ----------
@@ -1239,6 +1260,7 @@ window.__startApp = function(){
       id: t.id || uid(),
       taskId: t.taskId || '', // assigned post-migration
       title: t.title || '',
+      unitName: t.unitName || '',
       vendorId: t.vendorId || null,
       linkedTaskIds: Array.isArray(t.linkedTaskIds) ? t.linkedTaskIds : [],
       priority: t.priority || 'normal',
@@ -1298,10 +1320,9 @@ window.__startApp = function(){
   // ---------- Data ops ----------
   async function loadAll() {
     setSync('Loading…', 'syncing');
-    const [t, v, u, seededV2] = await Promise.all([
+    const [t, v, seededV2] = await Promise.all([
       safeGet(K_TASKS, true),
       safeGet(K_VENDORS, true),
-      safeGet(K_USER, false),
       safeGet(K_SEEDED_V2, true)
     ]);
     try {
@@ -1312,11 +1333,6 @@ window.__startApp = function(){
       const rawVendors = v ? JSON.parse(v.value) : [];
       state.vendors = rawVendors.map(migrateVendor);
     } catch(e){ state.vendors = []; }
-
-    if (u && u.value) {
-      state.currentUser = u.value;
-      $('#userSelect').value = u.value;
-    }
 
     // V2 vendor seed
     if (!seededV2) {
@@ -1335,7 +1351,6 @@ window.__startApp = function(){
 
   async function saveTasks() { await safeSet(K_TASKS, JSON.stringify(state.tasks), true); }
   async function saveVendors() { await safeSet(K_VENDORS, JSON.stringify(state.vendors), true); }
-  async function saveUserPref() { await safeSet(K_USER, state.currentUser, false); }
 
   // ---------- Render ----------
   function getExpenseHeads() {
@@ -1433,6 +1448,9 @@ window.__startApp = function(){
     const vendorBadge = vendor
       ? `<span class="badge badge-vendor">${escapeHtml(vendor.name)}</span>`
       : '';
+    const unitBadge = t.unitName
+      ? `<span class="badge badge-unit">${escapeHtml(t.unitName)}</span>`
+      : '';
 
     const linkedChips = (t.linkedTaskIds || []).map(lid => {
       const linkedTask = state.tasks.find(x => x.taskId === lid);
@@ -1482,6 +1500,7 @@ window.__startApp = function(){
             <option value="done" ${t.status==='done'?'selected':''}>Done</option>
           </select>
           ${priorityBadge}
+          ${unitBadge}
           ${vendorBadge}
         </div>
         ${linkedSection}
@@ -1658,11 +1677,6 @@ window.__startApp = function(){
     });
   });
 
-  $('#userSelect').addEventListener('change', (e) => {
-    state.currentUser = e.target.value;
-    saveUserPref();
-  });
-
   // Task filter chips
   $('#taskFilters').addEventListener('click', (e) => {
     const chip = e.target.closest('.chip');
@@ -1677,6 +1691,7 @@ window.__startApp = function(){
   function openTaskForm() {
     $('#taskForm').classList.remove('hidden');
     $('#taskTitle').value = '';
+    $('#taskUnit').value = '';
     $('#taskVendor').value = '';
     $('#taskPriority').value = 'normal';
     $('#taskLinkedInput').value = '';
@@ -1728,6 +1743,7 @@ window.__startApp = function(){
       id: uid(),
       taskId: '', // filled below
       title,
+      unitName: $('#taskUnit').value || '',
       vendorId: $('#taskVendor').value || null,
       linkedTaskIds: state.taskFormLinkedIds.slice(),
       priority: $('#taskPriority').value,
@@ -2069,7 +2085,25 @@ window.__startApp = function(){
   });
 
   // ---------- Init ----------
+  applySignedInUser();
+  populateUnitDropdown();
   loadAll();
+
+  function applySignedInUser() {
+    const u = window.__user || {};
+    const display = ((u.firstName || '') + ' ' + (u.lastName || '')).trim()
+      || u.name || u.email || 'User';
+    state.currentUser = display;
+    const el = $('#currentUserName');
+    if (el) el.textContent = display;
+  }
+
+  function populateUnitDropdown() {
+    const sel = $('#taskUnit');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">— Select unit —</option>' +
+      DEFAULT_UNITS.map(u => `<option value="${escapeHtml(u)}">${escapeHtml(u)}</option>`).join('');
+  }
 
   // Poll for updates from the other party
   setInterval(async () => {
