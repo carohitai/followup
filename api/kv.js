@@ -1,4 +1,6 @@
-import { kv } from '@vercel/kv';
+import { Redis } from '@upstash/redis';
+
+const redis = Redis.fromEnv();
 
 export default async function handler(req, res) {
   try {
@@ -7,7 +9,7 @@ export default async function handler(req, res) {
       if (!key || typeof key !== 'string') {
         return res.status(400).json({ error: 'missing key' });
       }
-      const value = await kv.get(key);
+      const value = await redis.get(key);
       if (value === null || value === undefined) {
         return res.status(404).json({ error: 'not found' });
       }
@@ -20,7 +22,7 @@ export default async function handler(req, res) {
       if (!key || typeof key !== 'string' || typeof value !== 'string') {
         return res.status(400).json({ error: 'key and string value required' });
       }
-      await kv.set(key, value);
+      await redis.set(key, value);
       return res.status(200).json({ ok: true });
     }
 
