@@ -1,9 +1,13 @@
 import { Redis } from '@upstash/redis';
+import { readSession } from '../lib/auth.js';
 
 const redis = Redis.fromEnv();
 
 export default async function handler(req, res) {
   try {
+    const session = await readSession(req);
+    if (!session) return res.status(401).json({ error: 'not authenticated' });
+
     if (req.method === 'GET') {
       const key = req.query.key;
       if (!key || typeof key !== 'string') {
