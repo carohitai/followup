@@ -5,14 +5,14 @@ Daily followup of vendors clients, staff.
 
 The tracker app is `index.html`. It expects a `window.storage` object for persistence; the page injects one that routes:
 
-- `shared: true` keys (tasks, vendors, seed flag) → `/api/kv` (Vercel KV, shared across all users)
+- `shared: true` keys (tasks, vendors, seed flag) → `/api/kv` (Upstash Redis, shared across all users)
 - `shared: false` keys (current-user preference) → `localStorage` (per browser)
 
-### Deploying to Vercel with KV (shared storage)
+### Deploying to Vercel with Upstash Redis (shared storage)
 
 1. Push `main` to GitHub and link the repo in Vercel (already done for `https://followup-tau.vercel.app`).
-2. In the Vercel project: **Storage → Create Database → KV** (or add an existing one) and click **Connect Project**. This auto-populates the env vars `KV_REST_API_URL`, `KV_REST_API_TOKEN`, `KV_REST_API_READ_ONLY_TOKEN`, `KV_URL` on all environments.
-3. Redeploy (Vercel → Deployments → latest → **Redeploy**).
+2. In the Vercel project: **Storage → Browse Marketplace → Upstash for Redis → Install → Connect Project** to `followup`. Create a new Redis database (Regional, any region, Free tier). This auto-populates env vars `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `REDIS_URL` on all environments.
+3. Redeploy (Vercel → Deployments → latest → **Redeploy**, uncheck "Use existing Build Cache").
 4. Open the site. The sync indicator should read "Synced · HH:MM" after the first edit. Data now persists server-side and syncs across users.
 5. Disable Vercel Deployment Protection (**Settings → Deployment Protection → Vercel Authentication: Disabled**) if you want the site to be publicly viewable.
 
