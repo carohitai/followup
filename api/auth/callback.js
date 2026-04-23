@@ -47,12 +47,14 @@ export default async function handler(req, res) {
     const claims = await verifyIdToken(tokens.id_token);
     const email = (claims.email || claims.preferred_username || claims.upn || '').toLowerCase();
     const name = claims.name || email;
+    const firstName = claims.given_name || '';
+    const lastName = claims.family_name || '';
 
     if (!isAllowedEmail(email)) {
       return sendError(res, 403, `Sign-in denied. Only accounts on ${allowedDomains().join(', ')} may access this app. (Your account: ${email || 'unknown'})`);
     }
 
-    const sessionJwt = await createSession({ sub: claims.sub, email, name });
+    const sessionJwt = await createSession({ sub: claims.sub, email, name, firstName, lastName });
     clearCookie(res, 'auth_state');
     clearCookie(res, 'auth_pkce');
     setSessionCookie(res, sessionJwt);
